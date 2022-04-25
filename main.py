@@ -1,7 +1,18 @@
 import requests
-from config import version, token_user, group_id, token_group
+import vk_api
+import json
+import datetime
+from vk_api.tools import VkTools
+from vk_api.longpoll import VkLongPoll, VkEventType
+from vk_api.exceptions import ApiError
+from vk_config import version, token_user, group_id, token_group
 
+#для запросов
 url = 'https://api.vk.com/method/'
+
+# авторизация
+vk = vk_api.VkApi(token=token_group)
+tools = VkTools(vk)
 
 # для проверки
 age_input = input("Введите верхнюю границу возраста: ")
@@ -12,20 +23,21 @@ age_from = 18
 # поиск по критериям методом users.search и получение id
 def find_persons(sex, age_at, age_to, city):
     ids_users = []
-    users_result = requests.get(url + 'users.search',
-        params ={
+    vk_ = vk_api.VkApi(token=token_user)
+    users_result = vk_.method('users.search',
+            {
              'sort': 0,
               'has_photo': 1,
               'is_closed': False,
               'online': 0,
               'age_from': age_from,
               'age_to': age_input,
-               'status': status,
-                'sex': user_choice,
+              'status': status,
+              'sex': user_choice,
               'fields': 'city,photo,screen_name',
               'count': 10,
-              'group_token': token_group,
-               'v': version
+              'access_token': token_group,
+              'v': version
                 }).json()
 
 #ищем в items элементы id и сохраняем
@@ -41,12 +53,13 @@ def find_persons(sex, age_at, age_to, city):
 
 def search_photo(ids_users):
     founded_photo = []
-    photo_result = requests.get(url + 'photos.get',
-    params ={
+    vk_ = vk_api.VkApi(token=token_user)
+    photo_result = vk_.method(url + 'photos.get',
+            {
             'owner_id': ids_users,
             'album_id': 'profile',
             'count': 10,
-            'token': token_user,
+            'access_token': token_user,
             'v': version,
             'extended': 1,
             'photo_sizes': 1
