@@ -168,7 +168,7 @@ def add_user_photos(event_id, link_photo, count_likes, id_dating_user):
         return True
     except (IntegrityError, InvalidRequestError):
         write_msg(event_id,
-                  'Не получается добавить фото'
+                  'Не получается добавить фото')
         return False
 
 
