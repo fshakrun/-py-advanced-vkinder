@@ -51,33 +51,55 @@ def find_persons(sex, age_at, age_to, city):
 
 #находим фото найденных людей методом photos.get
 
-def search_photo(ids_users):
-    founded_photo = []
+def search_photo(user_owner_id):
     vk_ = vk_api.VkApi(token=token_user)
-    photo_result = vk_.method(url + 'photos.get',
-            {
-            'owner_id': ids_users,
-            'album_id': 'profile',
-            'count': 10,
-            'access_token': token_user,
-            'v': version,
-            'extended': 1,
-            'photo_sizes': 1
-            })
+    try:
+        response = vk_.method('photos.get',
+                              {
+                                  'access_token': token_user,
+                                  'v': version,
+                                  'owner_id': user_owner_id,
+                                  'album_id': 'profile',
+                                  'count': 10,
+                                  'extended': 1,
+                                  'photo_sizes': 1,
+                              })
+    except ApiError:
+        return 'Нет доступа'
+    users_photos = []
+    for el in range(10):
+        try:
+            users_photos.append(
+                [response['items'][el]['likes']['count'],
+                 'photo' + str(response['items'][el]['owner_id']) + '_' + str(response['items'][el]['id'])])
+        except IndexError:
+            users_photos.append(['нет фото.'])
+    return users_photos
 
-    for user_id, data in founded_photo.items():
-        if data['count'] == 0:
-            continue
-        else:
-            founded_photo[user_id] = []
-            for photo in data['items']:
-                founded_photo[user_id].append((
-                    photo['likes']['count'],
-                    photo['sizes'][-1]['url']
-                ))
+def sort_likes(photos):
+    result = []
+    for element in photos:
+        if element != ['нет фото.'] and photos != 'нет доступа к фото':
+            result.append(element)
+    return sorted(result)
 
-        if data['count'] > 3:
-            founded_photo[user_id].sort(key=lambda x: (x[0], x[1]), reverse=True)
-            founded_photo[user_id] = founded_photo[user_id][:3]
 
-    return founded_photo
+
+#JSON
+def create_json(lst):
+    today = datetime.date.today()
+    today_str = f'{today.day}.{today.month}.{today.year}'
+    res = {}
+    res_list = []
+    for num, info in enumerate(lst):
+        res['data'] = today_str
+        res['first_name'] = info[0]
+        res['second_name'] = info[1]
+        res['link'] = info[2]
+        res['id'] = info[3]
+        res_list.append(res.copy())
+
+    with open("result.json", "a", encoding='UTF-8') as write_file:
+        json.dump(res_list, write_file, ensure_ascii=False)
+
+    print(f'Данные записаны в json файл.')
