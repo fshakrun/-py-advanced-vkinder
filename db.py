@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 # Подключение к базе
+
 Base = declarative_base()
 engine = sq.create_engine()
 Session = sessionmaker(bind=engine)
@@ -20,13 +21,15 @@ longpoll = VkLongPoll(vk)
 session = Session()
 connection = engine.connect()
 
+
 # Пользователь бота
 class MainUser(Base):
     __tablename__ = 'user'
     id = sq.Column(sq.Integer, primary_key=True, autoincrement=True)
     vk_id = sq.Column(sq.Integer, unique=True)
 
-# Избранное
+
+# Добавленные в Избранное
 class Favorites(Base):
     __tablename__ = 'favorites'
     id = sq.Column(sq.Integer, primary_key=True, autoincrement=True)
@@ -38,7 +41,7 @@ class Favorites(Base):
     id_user = sq.Column(sq.Integer, sq.ForeignKey('user.id', ondelete='CASCADE'))
 
 
-# Фото Избранное
+# Фото избранных анкет
 class FavoritesPics(Base):
     __tablename__ = 'favorites_pics'
     id = sq.Column(sq.Integer, primary_key=True, autoincrement=True)
@@ -64,27 +67,27 @@ class BlackListed(Base):
 #Работа с Базой Данных
 
 
-# Удаление из ЧС
+# Удаляет пользователя из черного списка
 def delete_db_blacklist(ids):
     current_user = session.query(BlackListed).filter_by(vk_id=ids).first()
     session.delete(current_user)
     session.commit()
 
 
-# Удаление из Избранного
+# Удаляет пользователя из избранного
 def delete_db_favorites(ids):
     current_user = session.query(Favorites).filter_by(vk_id=ids).first()
     session.delete(current_user)
     session.commit()
 
 
-# Проверка на регистрацию пользователя
+# проверят зареган ли пользователь бота в БД
 def check_db_master(ids):
     current_user_id = session.query(MainUser).filter_by(vk_id=ids).first()
     return current_user_id
 
 
-# Проверка на наличие пользователя в БД
+# Проверка наличия пользователя в БД
 def check_db_user(ids):
     favorite_user = session.query(Favorites).filter_by(
         vk_id=ids).first()
@@ -104,7 +107,7 @@ def check_db_black(ids):
 # Проверка на наличие в Избранном
 def check_db_favorites(ids):
     current_users_id = session.query(MainUser).filter_by(vk_id=ids).first()
-    # Добавленные в Избранное
+    # Находим все анкеты из избранного которые добавил данный юзер
     alls_users = session.query(Favorites).filter_by(id_user=current_users_id.id).all()
     return alls_users
 
@@ -154,7 +157,7 @@ def add_user(event_id, vk_id, first_name, second_name, city, link, id_user):
 
 
 # Сохранение в БД фото добавленного пользователя
-def add_user_photos(event_id, link_photo, count_likes, id_dating_user):
+def add_users_photos(event_id, link_photo, count_likes, id_dating_user):
     try:
         new_user = FavoritesPics(
             link_photo=link_photo,
@@ -164,15 +167,15 @@ def add_user_photos(event_id, link_photo, count_likes, id_dating_user):
         session.add(new_user)
         session.commit()
         write_msg(event_id,
-                  'Фотография добавлена в Избранное')
+                  'Фото пользователя сохранено в избранном')
         return True
     except (IntegrityError, InvalidRequestError):
         write_msg(event_id,
-                  'Не получается добавить фото')
+                  'Невозможно добавить фото этого пользователя(Уже сохранено)')
         return False
 
 
-# Добавление в ЧС
+# Добавление пользователя в черный список
 def add_to_black_list(event_id, vk_id, first_name, second_name, city, link, link_photo, count_likes, id_user):
     try:
         new_user = BlackListed(
